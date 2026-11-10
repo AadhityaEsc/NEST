@@ -2,53 +2,36 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\Listing;
-use Carbon\Carbon;
+use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Builder;
 
 class CleanExpiredListings extends Command
 {
     protected $signature = 'listings:clean';
-    protected $description = 'Withdraw listings if owner is inactive for 3 days, granting 1-time extension if wishlisted.';
+    protected $description = 'Withdraw student listings when publishers have been inactive for over 72 hours.';
 
-    public function handle()
+    public function handle(): int
     {
-        // Define the cutoff time (72 hours ago)
-        $threeDaysAgo = Carbon::now()->subDays(3);
+        $cutoff = now()->subHours(72);
 
-        // Fetch all currently active listings with their owners and wishlists
-        $activeListings = Listing::where('is_active', true)
-            ->with(['user', 'wishlists'])
-            ->get();
+        // The posting date is the initial start time. Each login resets the clock.
+        $withdrawn = Listing::query()
+            ->where('is_active', true)
+            ->where('created_at', '<', $cutoff)
+            ->whereHas('user', function (Builder $users) use ($cutoff) {
+                $users->where(function (Builder $inactive) use ($cutoff) {
+                    $inactive->whereNull('last_app_opened_at')
+                        ->orWhere('last_app_opened_at', '<', $cutoff);
+                });
+            })
+            ->update([
+                'is_active' => false,
+                'withdrawn_reason' => 'inactivity',
+            ]);
 
-        foreach ($activeListings as $listing) {
-            $ownerLastActive = $listing->user->last_app_opened_at;
+        $this->info("Withdrawn {$withdrawn} expired listings.");
 
-            // Note: If you implement a messages table, you would also check:
-            // $hasRecentMessages = $listing->messages()->where('created_at', '>=', $threeDaysAgo)->exists();
-            $hasRecentMessages = false;
-
-            // Condition: Owner has not opened app in 3 days AND no new messages
-            if ($ownerLastActive < $threeDaysAgo && !$hasRecentMessages) {
-
-                // Does this listing have any saves/wishlists?
-                $isWishlisted = $listing->wishlists->count() > 0;
-
-                // If wishlisted AND hasn't used their extension yet
-                if ($isWishlisted && !$listing->has_wishlist_extension) {
-                    $listing->update([
-                        'has_wishlist_extension' => true,
-                        // Reset the interaction clock to give them 3 more days
-                        'last_interaction_at' => Carbon::now()
-                    ]);
-                    $this->info("Listing {$listing->id} granted 3-day extension.");
-                }
-                // If no wishlists OR already used their extension
-                else {
-                    $listing->update(['is_active' => false]);
-                    $this->info("Listing {$listing->id} withdrawn due to inactivity.");
-                }
-            }
-        }
+        return self::SUCCESS;
     }
 }

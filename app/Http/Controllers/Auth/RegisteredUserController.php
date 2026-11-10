@@ -3,68 +3,91 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use App\Models\University;
+use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Validation\ValidationException;
 
 class RegisteredUserController extends Controller
 {
-    /**
-     * Display the registration view.
-     */
     public function create(): Response
     {
-        // Fetch all universities to populate the dropdown on the React frontend
-        $universities = University::orderBy('name')->get();
-
         return Inertia::render('Auth/Register', [
-            'universities' => $universities
+            'universities' => University::orderBy('name')
+                ->get(['id', 'name', 'email_domain']),
         ]);
     }
 
-    /**
-     * Handle an incoming registration request.
-     *
-     * @throws \Illuminate\Validation\ValidationException
-     */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'role' => 'required|in:student,landlord',
-            'email' => 'required_if:role,student|nullable|string|lowercase|email|max:255|unique:' . User::class,
-            'phone_number' => 'required_if:role,landlord|nullable|string|max:20|unique:' . User::class,
-            'university_id' => 'required_if:role,student|nullable|exists:universities,id',
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        $validated = $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+            'email' => [
+                'required',
+                'string',
+                'lowercase',
+                'email',
+                'max:255',
+                'unique:users,email',
+            ],
+            'university_id' => [
+                'required',
+                'integer',
+                'exists:universities,id',
+            ],
+            'phone_number' => [
+                'nullable',
+                'string',
+                'max:20',
+                'unique:users,phone_number',
+            ],
+            'password' => [
+                'required',
+                'confirmed',
+                Rules\Password::defaults(),
+            ],
         ]);
 
-        // Strict Domain Validation for Students
-        if ($request->role === 'student') {
-            $university = University::find($request->university_id);
-            $emailDomain = substr(strrchr($request->email, "@"), 1);
+        $university = University::findOrFail(
+            $validated['university_id']
+        );
 
-            if ($emailDomain !== $university->email_domain && !str_ends_with($emailDomain, '.edu')) {
-                throw ValidationException::withMessages([
-                    'email' => "You must use a valid university email address ending in @{$university->email_domain}.",
-                ]);
-            }
+        $emailDomain = Str::lower(
+            Str::afterLast($validated['email'], '@')
+        );
+
+        if (
+            $emailDomain !== Str::lower(
+                ltrim($university->email_domain, '@')
+            )
+        ) {
+            throw ValidationException::withMessages([
+                'email' => 'Use the email address issued by your selected university.',
+            ]);
         }
 
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone_number' => $request->phone_number,
-            'role' => $request->role,
-            'university_id' => $request->university_id,
-            'password' => Hash::make($request->password),
+            'name' => $validated['name'],
+            'email' => Str::lower($validated['email']),
+            'phone_number' =>
+            $validated['phone_number'] ?? null,
+            'university_id' => $university->id,
+            'role' => 'student',
+            'password' => Hash::make(
+                $validated['password']
+            ),
             'last_app_opened_at' => now(),
         ]);
 
@@ -72,6 +95,8 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        $request->session()->regenerate();
+
+        return redirect()->route('dashboard');
     }
 }

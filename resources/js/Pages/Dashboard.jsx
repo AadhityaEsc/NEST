@@ -14,6 +14,7 @@ export default function Dashboard({
     const isLandlord = user.role === 'landlord';
 
     return (
+
         <AuthenticatedLayout
             user={user}
             header={

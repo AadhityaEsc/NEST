@@ -1,163 +1,46 @@
-
-import React from 'react';
-import { Head, Link, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { Head, Link, usePage } from '@inertiajs/react';
 
-export default function Dashboard({
-    myListingsCount = 0,
-    activeListingsCount = 0,
-    savedListingsCount = 0,
-}) {
+const actions = [
+    ['Browse rooms', '/listings', 'Find available rooms and housemates'],
+    ['Explore map', '/map', 'See listings near your university'],
+    ['Publish a room', '/listings/create', 'Advertise a room you can share'],
+    ['My listings', '/my-listings', 'Manage rooms you published'],
+    ['My wishlist', '/wishlist', 'Revisit rooms you have saved'],
+];
+
+export default function Dashboard({ myListingsCount = 0, activeListingsCount = 0, savedListingsCount = 0 }) {
     const { auth } = usePage().props;
-    const user = auth.user;
-
-    const isLandlord = user.role === 'landlord';
 
     return (
-
-        <AuthenticatedLayout
-            user={user}
-            header={
-                <h2 className="text-xl font-semibold text-gray-800">
-                    {isLandlord
-                        ? 'Landlord Dashboard'
-                        : 'Student Dashboard'}
-                </h2>
-            }
-        >
+        <AuthenticatedLayout user={auth.user} header={<h2 className="font-semibold text-xl text-gray-800">Student Dashboard</h2>}>
             <Head title="Dashboard" />
-
-            <div className="min-h-screen bg-gray-50 py-10">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-
-                    {/* Welcome section */}
-                    <div className="mb-8 rounded-xl bg-white p-8 shadow-sm">
-                        <h1 className="text-3xl font-bold text-gray-900">
-                            Welcome, {user.name}!
-                        </h1>
-
-                        <p className="mt-2 text-gray-600">
-                            {isLandlord
-                                ? 'Manage your properties and accommodation listings.'
-                                : 'Find your next room or roommate near your university.'}
-                        </p>
-                    </div>
-
-                    {/* Landlord Dashboard */}
-                    {isLandlord ? (
-                        <>
-                            <div className="grid gap-6 md:grid-cols-2">
-
-                                <StatCard
-                                    title="Total Listings"
-                                    value={myListingsCount}
-                                />
-
-                                <StatCard
-                                    title="Active Listings"
-                                    value={activeListingsCount}
-                                />
-
-                            </div>
-
-                            <div className="mt-8 grid gap-6 md:grid-cols-2">
-
-                                <FeatureCard
-                                    title="Create Listing"
-                                    description="Advertise a room or accommodation."
-                                    href="/listings/create"
-                                    buttonText="Create Listing"
-                                />
-
-                                <FeatureCard
-                                    title="Manage Listings"
-                                    description="View and manage your accommodation listings."
-                                    href="/my-listings"
-                                    buttonText="Manage Listings"
-                                />
-
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            <div className="grid gap-6 md:grid-cols-2">
-
-                                <StatCard
-                                    title="Saved Listings"
-                                    value={savedListingsCount}
-                                />
-
-                                <StatCard
-                                    title="Account Type"
-                                    value="Student"
-                                />
-
-                            </div>
-
-                            <div className="mt-8 grid gap-6 md:grid-cols-2">
-
-                                <FeatureCard
-                                    title="Explore Accommodation"
-                                    description="Find available rooms and potential roommates."
-                                    href="/map"
-                                    buttonText="Explore Map"
-                                />
-
-                                <FeatureCard
-                                    title="My Wishlist"
-                                    description="View accommodation listings you have saved."
-                                    href="/wishlist"
-                                    buttonText="View Wishlist"
-                                />
-
-                            </div>
-                        </>
-                    )}
-
+            <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+                <h1 className="text-3xl font-bold text-gray-900">Welcome to NEST, {auth.user.name}!</h1>
+                <p className="mt-2 text-gray-600">Share a home with other university students — no landlord involved.</p>
+                <div className="mt-7 grid gap-4 sm:grid-cols-3">
+                    {[
+                        ['My rooms', myListingsCount],
+                        ['Visible rooms', activeListingsCount],
+                        ['Saved rooms', savedListingsCount],
+                    ].map(([label, value]) => (
+                        <div key={label} className="rounded-xl bg-white p-5 shadow">
+                            <p className="text-sm text-gray-500">{label}</p>
+                            <p className="mt-2 text-3xl font-bold text-indigo-600">{value}</p>
+                        </div>
+                    ))}
                 </div>
-            </div>
+                <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {actions.map(([name, href, description]) => (
+                        <Link key={href} href={href} className="rounded-xl bg-white p-6 shadow transition hover:shadow-md">
+                            <h2 className="text-xl font-semibold text-gray-900">{name}</h2>
+                            <p className="mt-2 text-gray-600">{description}</p>
+                            <span className="mt-4 inline-block font-medium text-indigo-600">Open →</span>
+                        </Link>
+                    ))}
+                </div>
+                <p className="mt-8 text-sm text-gray-500">Listings automatically hide after 72 hours without a successful publisher login. Logging in restarts the timer.</p>
+            </main>
         </AuthenticatedLayout>
-    );
-}
-
-function StatCard({ title, value }) {
-    return (
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-            <p className="text-sm font-medium text-gray-500">
-                {title}
-            </p>
-
-            <h3 className="mt-3 text-3xl font-bold text-indigo-600">
-                {value}
-            </h3>
-        </div>
-    );
-}
-
-function FeatureCard({
-    title,
-    description,
-    href,
-    buttonText,
-}) {
-    return (
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-
-            <h3 className="text-xl font-semibold text-gray-900">
-                {title}
-            </h3>
-
-            <p className="mt-3 text-gray-600">
-                {description}
-            </p>
-
-            <Link
-                href={href}
-                className="mt-6 inline-block rounded-lg bg-indigo-600 px-5 py-3 font-medium text-white transition hover:bg-indigo-700"
-            >
-                {buttonText}
-            </Link>
-
-        </div>
     );
 }

@@ -31,5 +31,14 @@ export default function MapHardwareManager({ onLocationFound }) {
         console.log("Captured image ready for upload:", photoFile.name);
     };
 
-
+    return (
+        <div className="hardware-controls">
+            <button onClick={triggerSuccessHaptic}>Test Notification Haptic</button>
+            <label>
+                Take Room Photo:
+                {/* 'capture="environment"' forces mobile devices to open the rear camera directly */}
+                <input type="file" accept="image/*" capture="environment" onChange={handleCameraCapture} />
+            </label>
+        </div>
+    );
 }

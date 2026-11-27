@@ -23,11 +23,7 @@ export default function Register({ universities = [] }) {
     }
 
     return (
-        <GuestLayout>
-            <Head title="Student Registration" />
-            <h1 className="mb-2 text-2xl font-bold text-gray-100">Join NEST</h1>
-            <p className="mb-6 text-sm text-gray-400">Student-to-student house sharing. No landlords.</p>
-            <form onSubmit={submit} className="space-y-4">
+       
                 <div>
                     <InputLabel htmlFor="name" value="Full Name" />
                     <TextInput id="name" className="mt-1 block w-full" value={data.name}
@@ -72,7 +68,7 @@ export default function Register({ universities = [] }) {
                     <Link href={route('login')} className="text-sm text-indigo-400 underline">Already registered?</Link>
                     <PrimaryButton disabled={processing}>Register</PrimaryButton>
                 </div>
-            </form>
-        </GuestLayout>
+            </form >
+        </GuestLayout >
     );
 }

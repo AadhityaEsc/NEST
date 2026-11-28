@@ -18,13 +18,7 @@ function LocationPicker({ onPick }) {
             maxZoom: 19,
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
         }).addTo(map);
-        let marker;
-        map.on('click', (e) => {
-            const { lat, lng } = e.latlng;
-            if (!marker) marker = L.circleMarker([lat, lng], { radius: 9, color: '#4f46e5' }).addTo(map);
-            else marker.setLatLng([lat, lng]);
-            onPickRef.current(lat.toFixed(7), lng.toFixed(7));
-        });
+
         return () => { map.remove(); mapRef.current = null; };
     }, []);
     return <div ref={elementRef} className="h-64 w-full rounded-lg" aria-label="Select room location on the map" />;

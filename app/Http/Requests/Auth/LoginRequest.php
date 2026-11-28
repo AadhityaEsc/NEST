@@ -79,4 +79,8 @@ class LoginRequest extends FormRequest
     /**
      * Get the rate limiting throttle key for the request.
      */
+    public function throttleKey(): string
+    {
+        return Str::transliterate(Str::lower($this->string('email')) . '|' . $this->ip());
+    }
 }
